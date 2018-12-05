@@ -31,6 +31,7 @@ PHP_FUNCTION(open_file) {
 	}
 }
 
+
 const zend_function_entry image_processor_functions[] = {
 	PHP_FE(open_file, NULL)
 	PHP_FE_END
