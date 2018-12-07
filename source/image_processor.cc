@@ -143,9 +143,11 @@ PHP_FUNCTION(image_apply_color) {
 		for(int y=0;y<bmp->height;y++) {
 			pixel *p = get_pixel(image, x, y);
 
-			p->r = r*((float)p->r/255);
-			p->g = g*((float)p->g/255);
-			p->b = b*((float)p->b/255);
+			float luminance = (0.299*p->r + 0.587*p->g + 0.114*p->b)/255;
+			
+			p->r = r*luminance;
+			p->g = g*luminance;
+			p->b = b*luminance;
 		}
 	}
 }
