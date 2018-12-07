@@ -5,9 +5,10 @@ extern "C" {
 #include "ext/standard/info.h"
 }
 
+#include <sstream>
+
 #include "include/image_processor.h"
 
-#include "include/bmp.h"
 #include "include/base64.h"
 #include "include/image.h"
 
@@ -122,11 +123,13 @@ PHP_FUNCTION(image_destroy) {
 	zend_list_delete(Z_RES_P(zimage));
 }
 
-PHP_FUNCTION(image_make_green) {
+PHP_FUNCTION(image_apply_color) {
 	php_image *image;
     zval *zimage;
+	long r, g, b;
+	double bias = 1;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zimage) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rlll|d", &zimage, &r, &g, &b, &bias) == FAILURE) {
         RETURN_FALSE;
     }
 
@@ -138,9 +141,97 @@ PHP_FUNCTION(image_make_green) {
 	
 	for(int x=0;x<bmp->width;x++) {
 		for(int y=0;y<bmp->height;y++) {
-			get_pixel(image, x, y)->g = 255;
+			pixel *p = get_pixel(image, x, y);
+
+			p->r = r*((float)p->r/255);
+			p->g = g*((float)p->g/255);
+			p->b = b*((float)p->b/255);
 		}
 	}
+}
+
+PHP_FUNCTION(image_apply_mask) {
+	php_image *image;
+
+    zval *zimage;
+	zval *kern_arr;
+
+	long norm = 1;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ra|l", &zimage, &kern_arr, &norm) == FAILURE) {
+        RETURN_FALSE;
+    }
+
+	if((image = (php_image *)zend_fetch_resource(Z_RES_P(zimage), PHP_IMAGE_RES_NAME, le_image)) == NULL) {
+		RETURN_FALSE;
+	}
+
+	HashTable *kern_ht = Z_ARRVAL_P(kern_arr);
+    int kern_cnt = zend_hash_num_elements(kern_ht);
+
+	double *kern = (double *)emalloc(sizeof(double) * kern_cnt);
+
+	int foreach_idx = 0;
+	std::ostringstream kern_print_s;
+
+	zval *val;
+	ZEND_HASH_FOREACH_VAL(kern_ht, val);
+		convert_to_double(val);
+		kern[foreach_idx++] = Z_DVAL(*val);
+		kern_print_s << Z_DVAL(*val) << ", ";
+	ZEND_HASH_FOREACH_END();
+
+	bitmap_image *bmp = (bitmap_image *)image->buffer;
+	
+	int kern_sz = sqrt(kern_cnt),
+		kern_center = kern_sz/2;
+	
+	printf(
+		"Kernel count: %i\n"
+		"Kernel size: %i\n"
+		"Kernel center: %i,%i\n"
+		"Normalization: %i\n"
+		"Kernel: %s\n"
+		"\n",
+		kern_cnt,
+		kern_sz,
+		kern_center,kern_center,
+		(int)norm,
+		kern_print_s.str().c_str()
+	);
+
+	uint8_t *modified_image = (uint8_t *)estrndup((char *)image->buffer, image->buffer_sz);
+
+	for(int x=0;x<bmp->width;x++) {
+		for(int y=0;y<bmp->height;y++) {
+			double r = 0, g = 0, b = 0;
+			for(int kx=0;kx<kern_sz;kx++) {
+				for(int ky=0;ky<kern_sz;ky++) {
+					int kpx = kern_sz-kx-1, kpy = kern_sz-ky-1;
+
+					int apx = x+kx-kern_center, apy = y+ky-kern_center;
+					
+					apx = (x - kern_sz / 2 + kx + bmp->width) % bmp->width;
+      				apy = (y - kern_sz / 2 + ky + bmp->height) % bmp->height;
+
+					pixel *ipixel = get_pixel(image, apx, apy);
+					float f = (kern[kpx*kern_sz + kpy]/norm);
+
+					r += ipixel->r * f;
+					g += ipixel->g * f;
+					b += ipixel->b * f;
+				}
+			}
+
+			get_pixel(modified_image, x, y)->r = std::min(std::max(int(r), 0), 255);
+			get_pixel(modified_image, x, y)->g = std::min(std::max(int(g), 0), 255);
+			get_pixel(modified_image, x, y)->b = std::min(std::max(int(b), 0), 255);
+		}
+	}
+	efree(kern);
+
+	efree(image->buffer);
+	image->buffer = modified_image;
 }
 
 PHP_FUNCTION(image_info) {
@@ -181,20 +272,10 @@ PHP_FUNCTION(image_info) {
 				&bmp->pixels[0],
 				&bmp->pixels[bmp->height * bmp->width * 3]
 			);
-
 }
 
 static void php_image_dtor(zend_resource *rimage) {
-	php_image *image = (php_image *)rimage->ptr;
-	if(image) {
-		if(image->name) {
-			efree(image->name);
-		}
-		if(image->buffer) {
-			efree(image->buffer);
-		}
-		efree(image);
-	}
+	image_free((php_image *)rimage->ptr);
 }
 
 const zend_function_entry image_processor_functions[] = {
@@ -206,7 +287,8 @@ const zend_function_entry image_processor_functions[] = {
 	PHP_FE(image_render, NULL)
 	PHP_FE(image_base64, NULL)
 
-	PHP_FE(image_make_green, NULL)
+	PHP_FE(image_apply_color, NULL)
+	PHP_FE(image_apply_mask, NULL)
 
 	PHP_FE(image_info, NULL)
 
