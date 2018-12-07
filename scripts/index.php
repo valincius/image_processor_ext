@@ -9,8 +9,8 @@
     //     4,16,24,16,4,
     //     1,4,6,4,1,
     // ], -256);
-
-    image_apply_color($img, 255, 255, 40);
+    // image_flip_x($img);
+    // image_apply_color($img, 255, 255, 40);
 
     $img_base64 = image_base64($img);
 ?>

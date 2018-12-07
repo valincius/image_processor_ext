@@ -202,7 +202,7 @@ PHP_FUNCTION(image_apply_mask) {
 		kern_print_s.str().c_str()
 	);
 
-	uint8_t *modified_image = (uint8_t *)estrndup((char *)image->buffer, image->buffer_sz);
+	uint8_t *image_copy = (uint8_t *)estrndup((char *)image->buffer, image->buffer_sz);
 
 	for(int x=0;x<bmp->width;x++) {
 		for(int y=0;y<bmp->height;y++) {
@@ -225,15 +225,64 @@ PHP_FUNCTION(image_apply_mask) {
 				}
 			}
 
-			get_pixel(modified_image, x, y)->r = std::min(std::max(int(r), 0), 255);
-			get_pixel(modified_image, x, y)->g = std::min(std::max(int(g), 0), 255);
-			get_pixel(modified_image, x, y)->b = std::min(std::max(int(b), 0), 255);
+			get_pixel(image_copy, x, y)->r = std::min(std::max(int(r), 0), 255);
+			get_pixel(image_copy, x, y)->g = std::min(std::max(int(g), 0), 255);
+			get_pixel(image_copy, x, y)->b = std::min(std::max(int(b), 0), 255);
 		}
 	}
 	efree(kern);
 
 	efree(image->buffer);
-	image->buffer = modified_image;
+	image->buffer = image_copy;
+}
+
+PHP_FUNCTION(image_flip_y) {
+	php_image *image;
+    zval *zimage;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zimage) == FAILURE) {
+        RETURN_FALSE;
+    }
+
+	if((image = (php_image *)zend_fetch_resource(Z_RES_P(zimage), PHP_IMAGE_RES_NAME, le_image)) == NULL) {
+		RETURN_FALSE;
+	}
+
+	bitmap_image *bmp = (bitmap_image *)image->buffer;
+	uint8_t *image_copy = (uint8_t *)estrndup((char *)image->buffer, image->buffer_sz);
+
+	for(int x=0;x<bmp->width;x++) {
+		for(int y=0;y<bmp->height;y++) {
+			get_pixel(image_copy, x, y)->rgb = get_pixel(image, bmp->width - x, y)->rgb;
+		}
+	}
+
+	efree(image->buffer);
+	image->buffer = image_copy;
+}
+PHP_FUNCTION(image_flip_x) {
+	php_image *image;
+    zval *zimage;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zimage) == FAILURE) {
+        RETURN_FALSE;
+    }
+
+	if((image = (php_image *)zend_fetch_resource(Z_RES_P(zimage), PHP_IMAGE_RES_NAME, le_image)) == NULL) {
+		RETURN_FALSE;
+	}
+
+	bitmap_image *bmp = (bitmap_image *)image->buffer;
+	uint8_t *image_copy = (uint8_t *)estrndup((char *)image->buffer, image->buffer_sz);
+
+	for(int x=0;x<bmp->width;x++) {
+		for(int y=0;y<bmp->height;y++) {
+			get_pixel(image_copy, x, y)->rgb = get_pixel(image, x, bmp->height - y)->rgb;
+		}
+	}
+
+	efree(image->buffer);
+	image->buffer = image_copy;
 }
 
 PHP_FUNCTION(image_info) {
@@ -281,8 +330,6 @@ static void php_image_dtor(zend_resource *rimage) {
 }
 
 const zend_function_entry image_processor_functions[] = {
-	PHP_FE(image_destroy, NULL)
-
 	PHP_FE(image_load, NULL)
 	PHP_FE(image_save, NULL)
 
@@ -292,7 +339,12 @@ const zend_function_entry image_processor_functions[] = {
 	PHP_FE(image_apply_color, NULL)
 	PHP_FE(image_apply_mask, NULL)
 
+	PHP_FE(image_flip_x, NULL)
+	PHP_FE(image_flip_y, NULL)
+
 	PHP_FE(image_info, NULL)
+
+	PHP_FE(image_destroy, NULL)
 
 	PHP_FE_END
 };
