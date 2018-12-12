@@ -26,7 +26,18 @@ if test "$PHP_EXT_NAME" != "no"; then
   PHP_NEW_EXTENSION(EXT_NAME, EXT_NAME.cc, $ext_shared)
 fi
 ```
+	5. run the following commands in your shell:
 
-    5. run phpize
-    6. run ./configure --enable-EXT_NAME
-    7. open EXT_NAME.cc
+```Shell
+$ phpize
+$ ./configure --enable-EXT_NAME
+$ make
+```
+	if everything is setup properly, the `make` command will execute without any errors.
+
+## Adding functionality to your project:
+```C++
+PHP_FUNCTION(function_name) {
+	
+}
+```
