@@ -67,3 +67,28 @@ PHP_FUNCTION(hello_person) {
 	RETURN_STRING(output_str.c_str());
 }
 ```
+Before we can use this function, we'll have to add it to our ```zend_function_entry``` list, like so:
+```C++
+const zend_function_entry EXT_NAME_functions[] = {
+	...
+	PHP_FE(hello_person, NULL)
+	...
+	PHP_FE_END
+	...
+};
+```
+If the code looks good, we can rebuild the code and install it and test it out.
+In your shell, run:
+```Shell
+$ make clean && make
+```
+If there are no errors then we can install and test it!
+Before the first install, we will first need to enable the extension, by running the following command:
+```Shell
+$ echo 'extension=EXT_NAME.so' >> /etc/php/PHP_VERSION/cli/php.ini
+```
+We can then install and test our new function with the following commands:
+```Shell
+$ make install && php -r "echo hello_person('john').PHP_EOL;"
+> Hello, john
+```
