@@ -36,8 +36,34 @@ $ make
 	if everything is setup properly, the `make` command will execute without any errors.
 
 ## Adding functionality to your project:
+In _PHP_ a simple function might look like this:
+```PHP
+function hello_person($name) {
+    return 'Hello, '.$name;
+}
+```
+We can get the same functionality in a _PHP Extension_ with the following code:
 ```C++
-PHP_FUNCTION(function_name) {
-	
+PHP_FUNCTION(hello_person) {
+	char *person_str;		// Variable to store a pointer to the name
+	size_t person_str_len;		// Variable to store the length of the name (not used in this case)
+
+	/*
+	* First parameter specifies the number of arguments that were passed to the function
+	* Next we specify what the parameters types are, in this case we only want a string, specified by 's'
+	* Strings are special so in this case we first pass a pointer person_str (this is where the actual string is stored) then we have another parameter that follows immediately after which is the length of the string
+
+	if we do not get the correct parameters, the function will return false and report an error
+	*/
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &person_str, &person_str_len) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	// Here we set up a string then just concat the name to it, this should be familiar
+	std::string output_str = "Hello, ";
+	output_str += person_str;
+
+	// Finally we return a pointer to our std string
+	RETURN_STRING(output_str.c_str());
 }
 ```
