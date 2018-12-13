@@ -55,7 +55,7 @@ fi
 
 5. run the following commands in your shell:
 
-```Shell
+```Bash
 $ phpize
 $ ./configure --enable-EXT_NAME
 $ make
@@ -110,18 +110,18 @@ const zend_function_entry EXT_NAME_functions[] = {
 
 If the code looks good, we can rebuild the code and install it and test it out.
 In your shell, run:
-```Shell
+```Bash
 $ make clean && make
 ```
 
 If there are no errors then we can install and test it!
 Before the first install, we will first need to enable the extension, by running the following command:
-```Shell
+```Bash
 $ echo 'extension=EXT_NAME.so' >> /etc/php/PHP_VERSION/cli/php.ini
 ```
 
 We can then install and test our new function with the following commands:
-```Shell
+```Bash
 $ make install && php -r "echo hello_person('john').PHP_EOL;"
 > Hello, john
 ```
