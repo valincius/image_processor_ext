@@ -4,7 +4,13 @@ The purpose of this project is to outline and show the capabilities of PHP exten
 # Requirements
 - Linux environment
 - PHP 7.0
-- PHP 7.0 Source code (http://github.com/php/php-src/)
+- PHP 7.0 Dev tools
+
+# Installing PHP + Dev tools:
+```Bash
+sudo apt-add-repository ppa:ondrej/php # add repo so we don't run into any issues with the next command
+sudo apt-get install build-essential php7.0 php7.0-dev
+```
 
 # Testing the provided project:
 ## Building
