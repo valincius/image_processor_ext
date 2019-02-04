@@ -21,6 +21,5 @@ pixel *get_pixel(uint8_t *buffer, int x, int y) {
 	return (pixel *)&bmp->pixels[(x*bmp->width + y)*3];	
 }
 pixel *get_pixel(php_image *image, int x, int y) {
-	bitmap_image *bmp = ((bitmap_image *)image->buffer);
-	return (pixel *)&bmp->pixels[(x*bmp->width + y)*3];	
+	return get_pixel(image->buffer);
 }
